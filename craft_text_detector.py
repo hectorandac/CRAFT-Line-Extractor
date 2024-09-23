@@ -16,7 +16,7 @@ from CRAFT import imgproc
 craft_model = None
 refine_model = None
 
-def load_craft_model(trained_model_path, use_cuda=True):
+def load_craft_model(trained_model_path, use_cuda=False):
     global craft_model
     if craft_model is None:
         # Initialize and load the CRAFT model only once
@@ -44,7 +44,7 @@ def copy_state_dict(state_dict):
         new_state_dict[name] = v
     return new_state_dict
 
-def detect_text_from_image(image, trained_model_path='weights/craft_mlt_25k.pth', text_threshold=0.7, link_threshold=0.4, low_text=0.4, use_cuda=True, canvas_size=1280, mag_ratio=1.5):
+def detect_text_from_image(image, trained_model_path='weights/craft_mlt_25k.pth', text_threshold=0.7, link_threshold=0.4, low_text=0.4, use_cuda=False, canvas_size=1280, mag_ratio=1.5):
     net = load_craft_model(trained_model_path, use_cuda)
 
     # Resize the image for inference
