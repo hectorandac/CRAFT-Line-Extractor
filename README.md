@@ -1,5 +1,7 @@
 # 📝 CRAFT-Sentence-Extractor: Document Sentence Extraction with CRAFT and Transformers
 
+[![CI Pipeline](https://github.com/hectorandac/CRAFT-Sentence-Extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/hectorandac/CRAFT-Sentence-Extractor/actions/workflows/ci.yml)
+
 ![Book Page Detection](./sample_image_det.png)
 
 ## Purpose
