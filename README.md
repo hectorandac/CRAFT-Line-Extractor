@@ -105,5 +105,3 @@ This repository is a stepping stone in understanding the intricacies of document
 - Transformer integration with document layout comprehension.
 - More robust handling of multi-column and mixed orientation documents.
 
----
-
