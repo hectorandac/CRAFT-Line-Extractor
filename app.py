@@ -98,7 +98,7 @@ def process_image():
         image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
 
     image = deskew_image(image)
-    _, polys, _ = detect_text_from_image(image, trained_model_path='./craft_mlt_25k.pth', use_cuda=True)
+    _, polys, _ = detect_text_from_image(image, trained_model_path='./craft_mlt_25k.pth', use_cuda=False)
     lines = process_polys_to_lines(polys)
 
     response_data = {}
