@@ -28,17 +28,17 @@ def deskew_image(image):
     return rotated
 
 def draw_bounding_boxes(image, lines):
-    debug_image = image.copy()
+    image = image.copy()
     colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in lines]
     for line_idx, line in enumerate(lines):
         color = colors[line_idx]
         for poly in line:
             pts = poly.reshape((-1, 1, 2)).astype(np.int32)
-            cv2.polylines(debug_image, [pts], isClosed=True, color=color, thickness=2)
-    return debug_image
+            cv2.polylines(image, [pts], isClosed=True, color=color, thickness=2)
+    return image
 
 def process_polys_to_lines(polys, line_threshold_factor=0.60, column_threshold_factor=1.5):
-    # Compute the avg x separation from each word to resoanably infer if a word belongs to another line
+    # Compute the avg y separation from each word to resonably infer if a word belongs to another line
     heights = [np.max(p[:, 1]) - np.min(p[:, 1]) for p in polys]
     avg_height = np.mean(heights)
     line_threshold = avg_height * line_threshold_factor
@@ -98,7 +98,7 @@ def process_image():
         image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
 
     image = deskew_image(image)
-    _, polys, _ = detect_text_from_image(image, trained_model_path='./craft_mlt_25k.pth')
+    _, polys, _ = detect_text_from_image(image, trained_model_path='./craft_mlt_25k.pth', use_cuda=True)
     lines = process_polys_to_lines(polys)
 
     response_data = {}

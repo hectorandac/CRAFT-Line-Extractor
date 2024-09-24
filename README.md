@@ -1,6 +1,6 @@
 # 📝 CRAFT-Line-Extractor: Document line extractor with CRAFT
 
-#### Video Demo: https://youtu.be/XXXXXX 
+#### Video Demo: https://youtu.be/fm_a--pg9KQ
 #### Description:
 This application basic purpose is to analyze the CRAFT model output (individual detected words polygon regions) and logically derive the lines of text for each paragraph, it features three important components divided into 2 files:
 
