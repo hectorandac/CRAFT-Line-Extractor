@@ -8,9 +8,6 @@ ENV PYTHONUNBUFFERED=1
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies including libGL
-RUN apt-get update && apt-get install -y libgl1
-
 # Copy requirements.txt and install dependencies
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
