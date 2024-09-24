@@ -38,8 +38,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v2
-      
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -48,7 +51,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build -t hectorandac/craft-sentence-extractor:latest .
+          docker build --pull -t hectorandac/craft-sentence-extractor:latest .
       
       - name: Push Docker image
         run: |
