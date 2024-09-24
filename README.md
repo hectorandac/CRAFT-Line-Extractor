@@ -1,4 +1,4 @@
-# 📝 CRAFT-Sentence-Extractor: Document line extractor with CRAFT
+# 📝 CRAFT-Line-Extractor: Document line extractor with CRAFT
 
 #### Video Demo: https://youtu.be/XXXXXX 
 #### Description:
