@@ -61,7 +61,7 @@ def draw_bounding_boxes(image, lines):
 import numpy as np
 
 
-def process_polys_to_lines(polys, line_threshold_factor=0.60, column_threshold_factor=1.6):
+def process_polys_to_lines(polys, line_threshold_factor=0.60, column_threshold_factor=0.7):
     # Compute the average y-separation between words to infer if a word belongs to the same line
     heights = [np.max(p[:, 1]) - np.min(p[:, 1]) for p in polys]
     widths = [np.max(p[:, 0]) - np.min(p[:, 0]) for p in polys]
