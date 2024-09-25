@@ -5,27 +5,48 @@ import json
 import os
 import tempfile
 from flask import Flask, request, jsonify, send_file, url_for
+from flask_cors import CORS
 from craft_text_detector import detect_text_from_image
 from PIL import Image
 
 app = Flask(__name__)
+CORS(app)
+import cv2
+import numpy as np
 
 def deskew_image(image):
+    # Convert the image to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bitwise_not(gray)
+    gray = cv2.bitwise_not(gray)  # Invert the image
+    
+    # Blur and apply threshold to get binary image
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    
+    # Get coordinates of non-zero pixels
     coords = np.column_stack(np.where(thresh > 0))
+    
+    # Compute the angle of the minimum area rectangle
     angle = cv2.minAreaRect(coords)[-1]
+    
+    # Fix the angle to ensure correct orientation
     if angle < -45:
         angle = -(90 + angle)
+    elif angle > 45:
+        angle = 90 - angle  # Handle cases where the angle could cause 90-degree tilt
     else:
         angle = -angle
+    
+    # Get image center and create the rotation matrix
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
     M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    
+    # Rotate the image
     rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    
     return rotated
+
 
 def draw_bounding_boxes(image, lines):
     image = image.copy()
@@ -37,39 +58,80 @@ def draw_bounding_boxes(image, lines):
             cv2.polylines(image, [pts], isClosed=True, color=color, thickness=2)
     return image
 
-def process_polys_to_lines(polys, line_threshold_factor=0.60, column_threshold_factor=1.5):
-    # Compute the avg y separation from each word to resonably infer if a word belongs to another line
+import numpy as np
+
+
+def process_polys_to_lines(polys, line_threshold_factor=0.60, column_threshold_factor=1.6):
+    # Compute the average y-separation between words to infer if a word belongs to the same line
     heights = [np.max(p[:, 1]) - np.min(p[:, 1]) for p in polys]
+    widths = [np.max(p[:, 0]) - np.min(p[:, 0]) for p in polys]
     avg_height = np.mean(heights)
+    avg_width = np.mean(widths)
     line_threshold = avg_height * line_threshold_factor
-    column_threshold = column_threshold_factor * 10
-
-    # Sort by x axis: Help us compare elements that are closer toguether along the x axis
+    column_threshold = avg_width * column_threshold_factor
+    
+    # Sort polygons by their x-axis (left-to-right order)
     polys = sorted(polys, key=lambda p: np.min(p[:, 0]))
-    lines = []
+    output = []
+    columns = []
 
-    # Iterate over each detected word in the document
+    # Iterate over each polygon (word) in the document
     for poly in polys:
         y_min = np.min(poly[:, 1])
         x_min = np.min(poly[:, 0])
+        x_max = np.max(poly[:, 0])
         added_to_line = False
-        
-        # Find the closest match based on the last word added to the line accoridng to it's x and y distance to the word
-        for line in lines:
-            last_poly_in_line = line[-1]
-            last_y_min_in_line = np.min(last_poly_in_line[:, 1])
-            last_x_max_in_line = np.max(last_poly_in_line[:, 0])
-            y_distance_between_words = abs(y_min - last_y_min_in_line)
-            x_distance_between_words = abs(x_min - last_x_max_in_line)
-            if y_distance_between_words <= line_threshold and x_distance_between_words <= column_threshold:
-                line.append(poly)
-                added_to_line = True
+        min_x_distance = float('inf')
+        closest_column = None
+
+        # Try to find the best column for this polygon
+        for column in columns:
+            column_min_x = np.min([np.min(line[0][:, 0]) for line in column])  # The min x of the leftmost line in the column
+
+            # Check all lines in the column to see if this poly fits into one
+            for line in column:
+                last_poly_in_line = line[-1]  # Get the last polygon in the current line
+                last_y_min_in_line = np.min(last_poly_in_line[:, 1])
+                last_x_max_in_line = np.max(last_poly_in_line[:, 0])
+
+                # Calculate the distances
+                y_distance = abs(y_min - last_y_min_in_line)
+                x_distance = x_min - last_x_max_in_line
+
+                # Check if the current poly belongs to the same line (y-proximity)
+                if y_distance <= line_threshold:
+                    # Check if the poly belongs to the same column (x-proximity)
+                    if x_distance <= column_threshold:
+                        # Add to the same line in the column
+                        line.append(poly)
+                        added_to_line = True
+                        break
+            
+            # If not added to any line, check if the poly is closer to this column based on column's min_x
+            if not added_to_line:
+                x_distance_to_column = x_min - column_min_x
+                if x_distance_to_column < min_x_distance:
+                    min_x_distance = x_distance_to_column
+                    closest_column = column
+
+            if added_to_line:
                 break
-        
-        # When no correlting line is found -> Initiate new line
+
+        # If the polygon doesn't fit in any existing line, check if it belongs to a new line in the closest column
         if not added_to_line:
-            lines.append([poly])
-    return lines
+            if closest_column is not None and min_x_distance <= column_threshold:
+                # Add as a new line to the closest column
+                closest_column.append([poly])
+            else:
+                # Create a new column with the polygon starting a new line
+                columns.append([[poly]])
+
+    for column in columns:
+        # Sort each column's lines by their vertical position (y-axis)
+        column = sorted(column, key=lambda line: np.min(line[0][:, 1]))
+        output.extend(column)
+    
+    return output
 
 # Server
 @app.route('/process_image', methods=['POST'])
